@@ -22,6 +22,10 @@ function updateSummary() {
   $('export-button').disabled = state.busy || !count;
   $('selection-count').textContent = `${state.selected.size} Scan${state.selected.size === 1 ? '' : 's'} ausgewählt`;
   $('apply-selection').disabled = state.busy || state.selected.size < 2;
+  const all = $('select-all-pages');
+  all.checked = state.choices.length > 0 && state.selected.size === state.choices.length;
+  all.indeterminate = state.selected.size > 0 && !all.checked;
+  all.disabled = state.busy || !state.choices.length;
 }
 function saveDraft() {
   if (!state.doc) return;
@@ -35,7 +39,6 @@ function renderPages() {
     check.setAttribute('aria-label',`Scan ${i+1} zur Mehrfachauswahl hinzufügen`);
     check.addEventListener('change',() => {
       if (check.checked) state.selected.add(i); else state.selected.delete(i);
-      if (!state.selected.size) state.selected.add(state.current);
       updateCards(); updateSummary();
     });
     const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-label',`Scan ${i+1} bearbeiten`);
@@ -195,6 +198,12 @@ $('center-line').addEventListener('click',() => editChoice({cut:.5}));
 $('rotate-page').addEventListener('click',() => {
   editChoice({rotation:(state.choices[state.current].rotation+90)%360});
   $(`card-${state.current}`).querySelector('img').src = previewURL(state.current,true); showPreview();
+});
+$('select-all-pages').addEventListener('change',() => {
+  if (state.busy) return;
+  state.selected = $('select-all-pages').checked
+    ? new Set(state.choices.map((_,i) => i)) : new Set();
+  updateCards(); updateSummary();
 });
 $('apply-selection').addEventListener('click',() => {
   if (state.busy) return;
