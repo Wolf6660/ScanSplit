@@ -87,7 +87,16 @@ Für einen festen Stand `SOURCE_REF` auf einen vorhandenen Tag setzen; mit `AUTO
 
 ### Startfehler bei `files.pythonhosted.org`
 
-Ältere Images haben Python-Pakete beim Start noch von PyPI heruntergeladen. Falls das Protokoll beim Laden von `pypdf` ein `Connection refused` meldet, einmal das Image mit dem neuen Einstiegspunkt neu bauen:
+Ältere Images haben Python-Pakete beim Start noch von PyPI heruntergeladen. **Ab Version 1.0.2 erzwingt auch die vom alten Image gelesene `requirements.txt` die Offline-Installation.** `--find-links vendor` wird relativ zu dieser Datei aufgelöst; der Container kann deshalb die mitgelieferte Bibliothek auch mit seinem ursprünglichen Startskript finden.
+
+Wenn das Protokoll bereits den aktuellen GitHub-Commit zeigt, aber noch PyPI-Downloads versucht, zunächst den Container neu erstellen:
+
+```sh
+sudo docker compose up -d --force-recreate
+sudo docker compose logs --since=5m --tail=100 scansplit
+```
+
+Das aktualisiert die Anwendung inklusive der abwärtskompatiblen Paketkonfiguration. Ein Image-Neubau ist dafür ab Version 1.0.2 nicht mehr erforderlich. Zum Aktualisieren des Startskripts selbst kann das Image weiterhin neu gebaut werden:
 
 ```sh
 sudo docker compose build --pull --no-cache
@@ -95,7 +104,7 @@ sudo docker compose up -d --force-recreate
 sudo docker compose logs --tail=100 scansplit
 ```
 
-Dabei wird die neueste Version aus dem im Compose-Build-Kontext angegebenen GitHub-Branch verwendet. Die vorhandenen Volumes bleiben erhalten; sie müssen für diese Korrektur nicht gelöscht werden. Künftige Containerstarts installieren Python-Pakete aus dem GitHub-Checkout mit `--no-index` und Hashprüfung.
+Dabei wird die neueste Version aus dem im Compose-Build-Kontext angegebenen GitHub-Branch verwendet. Die vorhandenen Volumes bleiben erhalten; sie müssen für diese Korrektur nicht gelöscht werden. Containerstarts installieren Python-Pakete aus dem GitHub-Checkout mit `--no-index` und Hashprüfung.
 
 ## Beispiel: Heft mit Cover auf einer A3-Fläche
 

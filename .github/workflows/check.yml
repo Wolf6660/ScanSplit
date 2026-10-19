@@ -31,6 +31,12 @@ jobs:
       - name: Check default GitHub startup mechanism
         if: github.event_name != 'pull_request'
         run: docker run --rm -e PIP_NO_INDEX=1 scansplit-test --check
+      - name: Check startup with the original image bootstrap
+        if: github.event_name != 'pull_request'
+        run: |
+          docker run --rm -e PIP_INDEX_URL=http://127.0.0.1:9/simple \
+            -v "$PWD/tests/fixtures/entrypoint-v1.sh:/legacy-entrypoint.sh:ro" \
+            --entrypoint /bin/sh scansplit-test /legacy-entrypoint.sh --check
       - name: Test container logs
         if: always()
         run: docker logs scansplit-test || true

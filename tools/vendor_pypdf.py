@@ -43,7 +43,7 @@ with zipfile.ZipFile(path,"w",compression=zipfile.ZIP_DEFLATED,compresslevel=9) 
         entry.external_attr = 0o644 << 16
         wheel.writestr(entry,content)
 digest = hashlib.sha256(path.read_bytes()).hexdigest()
-(root/"requirements.txt").write_text(f"pypdf=={VERSION} --hash=sha256:{digest}\n")
+(root/"requirements.txt").write_text(f"--no-index\n--find-links vendor\n--require-hashes\npypdf=={VERSION} --hash=sha256:{digest}\n")
 (vendor/"SHA256SUMS").write_text(f"{digest}  {path.name}\n")
 (vendor/"pypdf-LICENSE.txt").write_bytes(files[f"{info}/licenses/LICENSE"])
 print(f"Created {path.name}, SHA256 {digest}")
