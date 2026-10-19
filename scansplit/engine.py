@@ -127,7 +127,9 @@ def parts(page, choice):
 
 
 def render_preview(source, index, rotation, size, destination):
-    with tempfile.TemporaryDirectory() as scratch, open(source, "rb") as stream:
+    with tempfile.TemporaryDirectory() as scratch, \
+            tempfile.TemporaryDirectory(dir=Path(destination).parent) as output, \
+            open(source, "rb") as stream:
         reader = PdfReader(stream)
         writer = PdfWriter()
         page = copy.copy(reader.pages[index])
@@ -136,7 +138,8 @@ def render_preview(source, index, rotation, size, destination):
         writer.add_page(page)
         single = Path(scratch) / "single.pdf"
         writer.write(single)
-        base = Path(scratch) / "preview"
+        # Publish atomically within the data filesystem; /tmp may be a separate tmpfs.
+        base = Path(output) / "preview"
         run_tool(["pdftoppm", "-f", "1", "-l", "1", "-singlefile", "-scale-to", str(size),
                   "-png", str(single), str(base)], Control(), timeout=90)
         os.replace(base.with_suffix(".png"), destination)

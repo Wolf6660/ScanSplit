@@ -1,3 +1,6 @@
+import errno
+import os
+from unittest.mock import patch
 import hashlib
 import io
 import shutil
@@ -72,6 +75,22 @@ class EngineTests(unittest.TestCase):
             render_preview(self.source,0,rotation,500,png)
             width,height = struct.unpack('>II',png.read_bytes()[16:24])
             self.assertEqual(width > height,rotation == 90)
+
+    @unittest.skipUnless(shutil.which('pdftoppm'), 'Poppler is not installed')
+    def test_preview_published_on_destination_filesystem(self):
+        png = Path(self.temp.name) / 'previews' / 'page.png'
+        png.parent.mkdir()
+        replace = os.replace
+
+        def same_filesystem_replace(source, destination):
+            if Path(source).parent.parent != Path(destination).parent:
+                raise OSError(errno.EXDEV, 'Invalid cross-device link')
+            replace(source, destination)
+
+        with patch('scansplit.engine.os.replace', side_effect=same_filesystem_replace):
+            render_preview(self.source, 0, 0, 240, png)
+        self.assertTrue(png.read_bytes().startswith(b'\x89PNG\r\n\x1a\n'))
+        self.assertEqual(list(png.parent.iterdir()), [png])
 
     @unittest.skipUnless(shutil.which('tesseract') and shutil.which('pdftoppm'),'Tesseract/Poppler not installed')
     def test_real_german_ocr(self):

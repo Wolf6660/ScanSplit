@@ -99,6 +99,7 @@ function showPreview() {
   $('page-mode').value = state.choices[i].mode; $('active-scan').textContent = `Scan ${i+1}`;
   $('preview-title').textContent = `Scan ${i+1} · Vorschau`; $('page-position').textContent = `${i+1} / ${state.choices.length}`;
   $('previous-page').disabled = state.busy || i === 0; $('next-page').disabled = state.busy || i === state.choices.length-1;
+  $('preview-loading').textContent = 'Vorschau wird geladen …';
   $('preview-loading').hidden = false;
   $('preview-image').src = previewURL(i); $('preview-image').alt = `Vorschau von Scan ${i+1}`;
   fitPreview(); updateOverlay();

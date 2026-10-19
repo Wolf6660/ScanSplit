@@ -32,6 +32,13 @@ else:
 assert health['ocr_available'],health
 assert health['renderer_available'],health
 doc = request('/api/documents',fixture_pdf(),{'Content-Type':'application/pdf','X-File-Name':'Synthetic.pdf'})
+for kind in ('thumb', 'full'):
+    for rotation in (0, 90):
+        path = f'/api/documents/{doc["id"]}/preview/0?kind={kind}&rotation={rotation}'
+        png = request(path)
+        assert png.startswith(b'\x89PNG\r\n\x1a\n'), (kind, rotation)
+        assert request(path) == png  # Cached preview must remain readable.
+print('Container previews passed with separate temporary and data filesystems')
 choices = [{'mode':'whole','cut':.5,'rotation':0},{'mode':'skip','cut':.5,'rotation':0}]
 for ocr in (True,False):
     payload = {'choices':choices}

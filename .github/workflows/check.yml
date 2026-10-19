@@ -24,6 +24,8 @@ jobs:
         run: |
           docker build -t scansplit-test .
           docker run -d --name scansplit-test -p 127.0.0.1:18769:8080 -e PIP_NO_INDEX=1 \
+            --read-only --tmpfs /tmp:size=768m,mode=1777 \
+            --mount type=volume,destination=/data --mount type=volume,destination=/runtime \
             --entrypoint /bin/sh -v "$PWD:/source:ro" -w /source scansplit-test \
             -c 'python3 -m venv /runtime/test-venv && /runtime/test-venv/bin/python -m pip install --no-index --find-links vendor --require-hashes -r requirements.txt && exec /runtime/test-venv/bin/python -m scansplit'
       - name: Real Linux OCR and HTTP export test
