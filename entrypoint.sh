@@ -29,7 +29,11 @@ update_release() {
     fi
     if [ ! -f "$release/.ready" ]; then
         if ! "$PYTHON" -m venv "$release/.venv"; then return 1; fi
-        if ! "$release/.venv/bin/python" -m pip install --disable-pip-version-check --retries 2 --timeout 30 -r "$release/requirements.txt"; then return 1; fi
+        echo "ScanSplit: Installiere mitgelieferte Python-Pakete ohne PyPI-Zugriff …"
+        if ! "$release/.venv/bin/python" -m pip install --disable-pip-version-check --no-index --find-links "$release/vendor" --require-hashes -r "$release/requirements.txt"; then
+            echo "ScanSplit: Offline-Pakete fehlen oder ihre Prüfsummen stimmen nicht." >&2
+            return 1
+        fi
         if ! (cd "$release" && "$release/.venv/bin/python" -m scansplit --check); then return 1; fi
         touch "$release/.ready"
     fi
@@ -43,7 +47,7 @@ if [ "${AUTO_UPDATE:-true}" = "true" ] || [ ! -f "$ROOT/current/.ready" ]; then
     if ! update_release; then
         cleanup; staging=""
         if [ ! -f "$ROOT/current/.ready" ]; then
-            echo "ScanSplit: Keine funktionierende Version im Cache. Netzwerkzugang zu GitHub und PyPI prüfen." >&2
+            echo "ScanSplit: Keine funktionierende Version im Cache. GitHub-Verbindung und mitgelieferte Offline-Pakete prüfen." >&2
             exit 1
         fi
         echo "ScanSplit: Starte die zuletzt erfolgreich geprüfte Version aus dem Cache." >&2

@@ -28,6 +28,8 @@ docker compose up -d --build
 
 Danach im Browser **`http://IP-DEINES-NAS:8080`** beziehungsweise **`http://IP-DEINES-PI:8080`** öffnen. Der erste Build und der erste Start benötigen Internetzugang und können einige Minuten dauern. Im Protokoll erscheinen Download, Versionsprüfung und anschließend der gestartete Webserver.
 
+Die Python-Bibliothek wird inklusive Prüfsumme im Repository unter `vendor/` mitgeliefert. Die Installation beim Containerstart erfolgt ausschließlich aus diesen Dateien, **ohne Zugriff auf PyPI oder `files.pythonhosted.org`**. Für den Image-Build werden weiterhin Docker-/Debian-Paketserver benötigt; für Programmupdates GitHub.
+
 Das Image verwendet `python:3.12-slim-bookworm` und ist für **Linux AMD64 und ARM64** ausgelegt. Für den Raspberry Pi ein 64-Bit-Betriebssystem verwenden. Auf Synology muss das konkrete Modell Container Manager/Docker unterstützen.
 
 ### Port in der YAML ändern
@@ -68,9 +70,9 @@ Für ein Anwendungsupdate reicht:
 docker compose up -d --force-recreate
 ```
 
-Auch ein normaler Container-Neustart führt die Aktualisierung aus. Bei unverändertem Git-Commit wird die bereits installierte Python-Umgebung wiederverwendet. Änderungen der Python-Anforderungen werden bei einem neuen Commit automatisch installiert.
+Auch ein normaler Container-Neustart führt die Aktualisierung aus. Bei unverändertem Git-Commit wird die bereits installierte Python-Umgebung wiederverwendet. Änderungen der Python-Anforderungen werden bei einem neuen Commit automatisch aus den mitgelieferten Wheels installiert. Paketdateien und SHA-256-Prüfsummen müssen im gleichen Commit enthalten sein.
 
-Wenn GitHub/PyPI vorübergehend nicht erreichbar ist oder die neue Version die Startprüfung nicht besteht, startet die letzte geprüfte Version aus dem persistenten Laufzeit-Cache. Ohne erste erfolgreiche Installation kann der Dienst nicht offline starten. Das Protokoll nennt diesen Rückfall ausdrücklich. `/api/health` zeigt die laufende Git-Revision an.
+Wenn GitHub vorübergehend nicht erreichbar ist oder die neue Version die Startprüfung nicht besteht, startet die letzte geprüfte Version aus dem persistenten Laufzeit-Cache. Ohne erste erfolgreiche Installation kann der Dienst nicht offline starten. Das Protokoll nennt diesen Rückfall ausdrücklich. `/api/health` zeigt die laufende Git-Revision an.
 
 **Änderungen am Basis-Image** (Dockerfile, Systempakete, Einstiegspunkt) erfordern zusätzlich einen Image-Neubau:
 
@@ -82,6 +84,18 @@ docker compose up -d --force-recreate
 Ein Container-Neuerstellen kann ein bereits gebautes Docker-Image nicht nachträglich verändern. Anwendungsdateien, Weboberfläche und Python-Abhängigkeiten werden dagegen ohne Neubau von GitHub aktualisiert.
 
 Für einen festen Stand `SOURCE_REF` auf einen vorhandenen Tag setzen; mit `AUTO_UPDATE: "false"` wird nach der Erstinstallation die gecachte Version verwendet. Updates werden nur beim Start geladen, nicht während laufender PDF-Aufträge.
+
+### Startfehler bei `files.pythonhosted.org`
+
+Ältere Images haben Python-Pakete beim Start noch von PyPI heruntergeladen. Falls das Protokoll beim Laden von `pypdf` ein `Connection refused` meldet, einmal das Image mit dem neuen Einstiegspunkt neu bauen:
+
+```sh
+sudo docker compose build --pull --no-cache
+sudo docker compose up -d --force-recreate
+sudo docker compose logs --tail=100 scansplit
+```
+
+Dabei wird die neueste Version aus dem im Compose-Build-Kontext angegebenen GitHub-Branch verwendet. Die vorhandenen Volumes bleiben erhalten; sie müssen für diese Korrektur nicht gelöscht werden. Künftige Containerstarts installieren Python-Pakete aus dem GitHub-Checkout mit `--no-index` und Hashprüfung.
 
 ## Beispiel: Heft mit Cover auf einer A3-Fläche
 
@@ -123,7 +137,7 @@ Ohne Docker: Python 3.12, Poppler (`pdftoppm`) und optional Tesseract mit deutsc
 ```sh
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install --no-index --find-links vendor --require-hashes -r requirements.txt
 SCANSPLIT_DATA_DIR=./data python -m scansplit
 python -m unittest discover -s tests -v
 ```
@@ -135,6 +149,8 @@ docker compose -f compose.yml -f compose.local.yml up --build
 ```
 
 Die Tests prüfen PDF-Teilung, Scannerrotationen, A4-Maße, Originalschutz, Abbruch externer Prozesse, echte HTTP-Uploads/Vorschauen/Downloads und den Update-/Fallback-Mechanismus mit einem lokalen Git-Repository. Der OCR-Integrationstest verwendet echten Tesseract und wird nur ausgeführt, wenn Tesseract/Poppler installiert sind. GitHub Actions installiert diese Werkzeuge, führt die Tests aus und baut das Image für AMD64 und ARM64.
+
+Der Bootstrap-Regressionstest installiert das echte mitgelieferte pypdf-Wheel in frische virtuelle Umgebungen bei abgeschaltetem Paketindex. Ein zusätzlicher Test manipuliert eine Paketdatei und prüft, dass die Installation wegen einer falschen Prüfsumme abgewiesen wird. Hinweise zum reproduzierbaren Neuverpacken der unveränderten Bibliothek stehen in `vendor/README.md`.
 
 `tools/browser_check.cjs` ist ein optionaler Playwright-Test für die echte Oberfläche einschließlich rotem Standard-OCR-Schalter, Ziehen/Tastatursteuerung der Trennlinie, Mehrfachauswahl, Download, Reload und Mobilansicht. Seine Ergebnisse und alle Test-PDFs sind von Git ausgeschlossen.
 
