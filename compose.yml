@@ -1,0 +1,43 @@
+services:
+  scansplit:
+    image: scansplit-runtime:local
+    build:
+      context: https://github.com/Wolf6660/ScanSplit.git#main
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      # Links: frei wählbarer Port auf NAS/Raspberry Pi. Rechts: interner Port.
+      - "${SCANSPLIT_PORT:-8080}:8080"
+    environment:
+      SOURCE_REPO: https://github.com/Wolf6660/ScanSplit.git
+      SOURCE_REF: main
+      AUTO_UPDATE: "true"
+      SCANSPLIT_PORT: "8080"
+      SCANSPLIT_DATA_DIR: /data
+      SCANSPLIT_RUNTIME_DIR: /runtime
+      MAX_UPLOAD_MB: "250"
+      MAX_PAGES: "400"
+      MAX_QUEUED_JOBS: "4"
+      RETENTION_HOURS: "24"
+      OMP_THREAD_LIMIT: "1"
+      TZ: Europe/Berlin
+    volumes:
+      - scansplit_data:/data
+      - scansplit_runtime:/runtime
+    tmpfs:
+      - /tmp:size=768m,mode=1777
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  scansplit_data:
+  scansplit_runtime:

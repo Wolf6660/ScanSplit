@@ -1,0 +1,9 @@
+.git
+.github
+.venv*
+__pycache__
+data
+test-output
+tests
+*.pdf
+*.zip

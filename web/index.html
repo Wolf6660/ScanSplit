@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b655f">
+  <title>ScanSplit – Aus einem Scan werden zwei Seiten</title>
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="ScanSplit Startseite"><img src="/assets/icon.png" alt="" width="58" height="58"><span>ScanSplit<small>Platz für jede einzelne Seite.</small></span></a>
+    <div class="header-actions"><span class="local-badge"><i></i> Lokal verarbeitet</span><button id="replace-file" class="button secondary" hidden>Andere PDF öffnen</button></div>
+  </header>
+  <main>
+    <section class="intro"><div><span class="eyebrow">VOM HEFT ZUR EINZELSEITE</span><h1>Doppelseiten rein.<br>Einzelseiten raus.</h1><p>Heftscan öffnen, Trennlinie prüfen und als A4-PDF speichern.<br class="desktop-only"> Mit deutscher Texterkennung – wenn du möchtest.</p></div><div class="intro-mark" aria-hidden="true"><span>A3</span><b>→</b><span>A4</span><span>A4</span></div></section>
+    <input id="file-input" type="file" accept="application/pdf,.pdf" hidden>
+    <section id="upload-panel" class="upload-panel" aria-label="PDF hochladen">
+      <div class="upload-symbol" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4m-5 5 5-5 5 5M4 15v5h16v-5"/></svg></div>
+      <h2>Dein Heftscan ist der Anfang.</h2><p>Eine PDF hierher ziehen oder auf deinem Gerät auswählen.</p>
+      <button id="choose-file" class="button primary">PDF auswählen <span aria-hidden="true">↗</span></button>
+      <p id="upload-hint" class="small">PDF · bis zu 250 MB · keine Cloud-Übertragung</p>
+      <p id="upload-status" role="status" class="small"></p>
+    </section>
+    <div id="message" role="alert" class="message" hidden></div>
+    <section id="workspace" hidden aria-label="PDF bearbeiten">
+      <div class="document-bar"><div class="document-title"><span class="pdf-label">PDF</span><div><h2 id="document-name"></h2><p id="document-detail"></p></div></div><div class="document-actions"><span id="output-count" class="count-pill"></span><button id="delete-document" class="text-button">Dateien löschen</button></div></div>
+      <div class="workspace-grid">
+        <aside class="pages-panel panel"><div class="panel-heading"><h2>Deine Scans</h2><span id="scan-count"></span></div><p class="selection-hint">Häkchen für Mehrfachauswahl setzen.</p><div id="page-list" class="page-list"></div></aside>
+        <section class="preview-panel panel" aria-label="Seitenvorschau">
+          <div class="panel-heading"><h2 id="preview-title">Vorschau</h2><div class="page-navigation"><button id="previous-page" class="icon-button" aria-label="Vorheriger Scan">←</button><span id="page-position"></span><button id="next-page" class="icon-button" aria-label="Nächster Scan">→</button></div></div>
+          <div id="preview-area" class="preview-area"><div id="sheet" class="sheet"><img id="preview-image" alt="Aktueller Scan" draggable="false"><div id="shade-left" class="shade left"></div><div id="shade-right" class="shade right"></div><div id="shade-all" class="shade all"><span>Wird ausgelassen</span></div><div id="divider" class="divider" tabindex="0" role="slider" aria-label="Trennlinie verschieben" aria-valuemin="10" aria-valuemax="90" aria-valuenow="50"><span aria-hidden="true">↔</span></div></div><p id="preview-loading" class="preview-loading" role="status">Vorschau wird geladen …</p></div>
+          <div class="preview-caption"><span class="orange-dot"></span><span id="preview-caption">Die orange Linie lässt sich direkt verschieben.</span></div>
+        </section>
+        <aside class="settings-panel panel"><div class="panel-heading"><h2>Seite einrichten</h2><span id="active-scan"></span></div>
+          <div class="settings-content"><label class="field-label" for="page-mode">Was soll erhalten bleiben?</label><select id="page-mode"><option value="whole">Ganze Seite</option><option value="split">Beide Hälften · links vor rechts</option><option value="left">Nur die linke Hälfte</option><option value="right">Nur die rechte Hälfte</option><option value="skip">Diesen Scan auslassen</option></select>
+            <div class="field-heading"><label class="field-label" for="cut-range">Trennlinie</label><output id="cut-value" for="cut-range">50 %</output></div><input id="cut-range" type="range" min="10" max="90" step="0.1" value="50">
+            <div class="two-buttons"><button id="center-line" class="button secondary">Auf Mitte</button><button id="rotate-page" class="button secondary">Drehen ↻</button></div>
+            <button id="apply-selection" class="button secondary full" disabled>Auf Auswahl anwenden</button><p id="selection-count" class="small muted">Ein Scan ausgewählt</p>
+            <div class="settings-divider"></div>
+            <label id="ocr-card" class="ocr-card active"><span class="ocr-heading"><span><strong>Deutsche OCR</strong><small id="ocr-state">Aktiviert</small></span><input id="ocr-toggle" type="checkbox" role="switch" checked aria-describedby="ocr-description"></span><span id="ocr-description">Macht die PDF durchsuchbar. Benötigt mehr Zeit. Du kannst OCR jederzeit vor dem Export ausschalten.</span></label>
+            <p id="ocr-availability" class="availability" hidden></p>
+            <div class="export-summary"><span>Ausgabe</span><strong>A4 · Hochformat</strong></div>
+            <button id="export-button" class="button primary full">A4-PDF erstellen <span aria-hidden="true">→</span></button>
+            <p class="small muted centered">Dein Original bleibt erhalten.</p>
+          </div>
+        </aside>
+      </div>
+      <section id="job-panel" class="job-panel" hidden aria-label="Exportfortschritt"><div class="job-heading"><div><h2 id="job-title">PDF wird erstellt</h2><p id="job-message" role="status"></p></div><button id="cancel-job" class="button secondary">Abbrechen</button><a id="download-result" class="button primary" hidden>PDF herunterladen ↓</a></div><progress id="job-progress" value="0" max="1"></progress><p id="job-hint" class="small muted"></p></section>
+    </section>
+    <section class="how-it-works"><div><span>01</span><p><strong>Scan öffnen</strong>Auch gemischte A4- und A3-Seiten sind möglich.</p></div><div><span>02</span><p><strong>Seiten prüfen</strong>Cover behalten, Doppelseiten teilen, Mitte anpassen.</p></div><div><span>03</span><p><strong>A4-PDF mitnehmen</strong>Mit optionaler deutscher Texterkennung.</p></div></section>
+  </main>
+  <footer><span>ScanSplit <span id="version"></span></span><span id="retention-note">Dateien werden nach 24 Stunden automatisch entfernt.</span><a href="https://github.com/Wolf6660/ScanSplit" target="_blank" rel="noreferrer">Projekt auf GitHub ↗</a></footer>
+</body>
+</html>

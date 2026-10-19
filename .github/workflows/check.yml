@@ -1,0 +1,46 @@
+name: Test and build ScanSplit
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-deu
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+      - run: sh -n entrypoint.sh
+      - run: docker compose config --quiet
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build local Linux image and start HTTP test container
+        run: |
+          docker build -t scansplit-test .
+          docker run -d --name scansplit-test -p 127.0.0.1:18769:8080 \
+            --entrypoint /bin/sh -v "$PWD:/source:ro" -w /source scansplit-test \
+            -c 'python3 -m venv /runtime/test-venv && /runtime/test-venv/bin/python -m pip install -r requirements.txt && exec /runtime/test-venv/bin/python -m scansplit'
+      - name: Real Linux OCR and HTTP export test
+        run: python tools/container_smoke.py http://127.0.0.1:18769
+      - name: Check default GitHub startup mechanism
+        if: github.event_name != 'pull_request'
+        run: docker run --rm scansplit-test --check
+      - name: Test container logs
+        if: always()
+        run: docker logs scansplit-test || true
+      - name: Remove test container
+        if: always()
+        run: docker rm -f scansplit-test || true
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

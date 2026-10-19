@@ -1,0 +1,11 @@
+# Entwicklung: lokaler Quellcode, kein Download beim Start.
+services:
+  scansplit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "python3 -m venv /runtime/dev-venv && /runtime/dev-venv/bin/python -m pip install -r /source/requirements.txt && cd /source && exec /runtime/dev-venv/bin/python -m scansplit"
+    volumes:
+      - .:/source:ro
