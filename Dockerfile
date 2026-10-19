@@ -16,7 +16,8 @@ RUN apt-get update \
     && mkdir -p /data /runtime \
     && chown scansplit:scansplit /data /runtime
 
-COPY --chmod=755 entrypoint.sh /usr/local/bin/scansplit-entrypoint
+COPY entrypoint.sh /usr/local/bin/scansplit-entrypoint
+RUN chmod 755 /usr/local/bin/scansplit-entrypoint
 USER scansplit:scansplit
 WORKDIR /runtime
 EXPOSE 8080
